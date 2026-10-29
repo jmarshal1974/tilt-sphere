@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import {Marble,COURSE,RAD,clamp,handSlope,limitedTilt,faceTravel} from './physics.js';
+import {Marble,COURSE,RAD,clamp,handSlope,limitedTilt,faceTravel,boardNormal} from './physics.js';
 const $=id=>document.getElementById(id);
 const scene=new THREE.Scene();scene.background=new THREE.Color('#dce8e2');scene.fog=new THREE.Fog('#dce8e2',60,145);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local-floor');$('viewport').append(renderer.domElement);
@@ -109,8 +109,8 @@ renderer.xr.addEventListener('sessionstart',()=>{xrStarted=true;setView('cabin')
 renderer.xr.addEventListener('sessionend',()=>{xrStarted=false;xrCal=null;buttonState={};knobBase={left:null,right:null};hud.visible=false;vrShade.visible=false;camera.position.set(0,0,0);camera.quaternion.identity();rig.position.set(0,0,0);rig.quaternion.identity();setView('overview');setPaused(true);$('vr').textContent='Enter VR ↗';document.body.classList.remove('in-vr')});setupVR();
 const worldPos=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),normal=new THREE.Vector3(),axis=new THREE.Vector3(),rollQ=new THREE.Quaternion(),boardQ=new THREE.Quaternion();
 function updateWorld(dt){
- const t=Math.hypot(tilt.x,tilt.z),visual=$('stabilized').checked?0:t;
- if(t>.000001){normal.set(-tilt.x/t*Math.sin(visual),Math.cos(visual),-tilt.z/t*Math.sin(visual));boardQ.setFromUnitVectors(up,normal)}else boardQ.identity();
+ const t=Math.hypot(tilt.x,tilt.z);
+ if(t>.000001){const n=boardNormal($('stabilized').checked?{x:0,z:0}:tilt);normal.set(n.x,n.y,n.z);boardQ.setFromUnitVectors(up,normal)}else boardQ.identity();
  board.quaternion.copy(boardQ);worldPos.set(ball.x,ball.y,ball.z).applyQuaternion(boardQ);ballWorld.position.copy(worldPos);
  cabin.rotation.y=yaw;passenger.visible=view==='overview'&&!renderer.xr.isPresenting;
  seamMat.opacity=view==='overview'&&!renderer.xr.isPresenting?.6:.10;sphereMat.opacity=view==='overview'&&!renderer.xr.isPresenting?.14:.025;

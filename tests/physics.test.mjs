@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Marble,COURSE,RAD,handSlope,faceTravel,ground,limitedTilt} from '../physics.js';
+import {Marble,COURSE,RAD,handSlope,faceTravel,ground,limitedTilt,boardNormal} from '../physics.js';
+import {Vector3,Quaternion} from '../vendor/three.module.min.js';
 const run=(b,seconds,tilt={x:0,z:0})=>{for(let i=0;i<Math.round(seconds*120);i++)b.step(1/120,tilt)};
 test('equal-height controllers level the board, including depth-staggered hands',()=>{for(const z of [-.6,0,.6]){const t=handSlope({x:-.3,y:1,z:0},{x:.3,y:1,z});assert.equal(t.x,0);assert.equal(t.z,0)}});
 test('higher forward hand and lower rear hand produce backward tilt',()=>{const t=handSlope({x:0,y:1.4,z:-.4},{x:0,y:1,z:.1});assert(t.z>0);assert.equal(t.x,0)});
@@ -14,3 +15,23 @@ test('ramp height field supports uphill contact and downhill acceleration',()=>{
 test('goal requires settling, not simply crossing at speed',()=>{const b=new Marble();b.x=0;b.z=-17;b.vx=3;run(b,.1);assert(!b.won);b.vx=0;run(b,.8);assert(b.won)});
 test('heading follows actual travel, holds at rest and respects yaw-rate cap',()=>{assert.equal(faceTravel(.8,0,0,1),.8);assert.equal(faceTravel(0,0,-2,.1),0);const y=faceTravel(0,0,2,.1,40*RAD);assert(Math.abs(y)<=4*RAD+.00001);assert.equal(faceTravel(0,2,0,1,0),0)});
 test('physics trajectory is consistent at different fixed timesteps',()=>{const a=new Marble(),b=new Marble();for(let i=0;i<120;i++)a.step(1/120,{x:.05,z:-.1});for(let i=0;i<240;i++)b.step(1/240,{x:.05,z:-.1});assert(Math.abs(a.z-b.z)<.01);assert(Math.abs(a.vz-b.vz)<.001)});
+test('all four keyboard directions and diagonals lower the surface in the acceleration direction',()=>{
+ for(const [x,z] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]]){
+  const tilt=limitedTilt(x*.15,z*.15,.2),n=boardNormal(tilt),q=new Quaternion().setFromUnitVectors(new Vector3(0,1,0),new Vector3(n.x,n.y,n.z));
+  const downstream=new Vector3(x,0,z).applyQuaternion(q),upstream=new Vector3(-x,0,-z).applyQuaternion(q);
+  assert(downstream.y<upstream.y,`input ${x},${z} must lower the downhill side`);
+  const b=new Marble();b.step(1/120,tilt);
+  assert(b.vx*x+b.vz*z>0,'sphere must accelerate toward that lower side');
+  const worldMotion=new Vector3(b.vx,0,b.vz).applyQuaternion(q);
+  assert(worldMotion.y<0,'grounded movement must reduce world height');
+ }
+});
+test('rendered board transform yields the same local gravity used by physics',()=>{
+ for(const tilt of [{x:.18,z:0},{x:0,z:-.12},{x:-.1,z:.13}]){
+  const n=boardNormal(tilt),q=new Quaternion().setFromUnitVectors(new Vector3(0,1,0),new Vector3(n.x,n.y,n.z));
+  const localGravity=new Vector3(0,-9.81,0).applyQuaternion(q.clone().invert());
+  const b=new Marble();b.step(1/120,tilt);
+  assert(Math.abs(b.vx-localGravity.x*5/7/120)<1e-10);
+  assert(Math.abs(b.vz-localGravity.z*5/7/120)<1e-10);
+ }
+});

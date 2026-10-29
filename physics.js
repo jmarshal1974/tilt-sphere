@@ -11,6 +11,9 @@ export function handSlope(a,b,{sensitivity=.65,limit=12*RAD,deadzone=.018}={}){
  return {x:dx/len*angle,z:dz/len*angle,valid:true};
 }
 export function limitedTilt(x,z,limit){const n=Math.hypot(x,z);return n>limit?{x:x/n*limit,z:z/n*limit}:{x,z}}
+// Tilt points downhill. A positive normal component lowers that side of the
+// plane (normal dot position = 0). Shared by display and regression checks.
+export function boardNormal(tilt){const t=Math.hypot(tilt.x,tilt.z),k=t?Math.sin(t)/t:1;return {x:tilt.x*k,y:Math.cos(t),z:tilt.z*k}}
 export function ground(x,z){
  if(Math.abs(x)>COURSE.halfX||Math.abs(z)>COURSE.halfZ)return null;
  for(const h of COURSE.holes)if(Math.hypot(x-h.x,z-h.z)<h.r-.12)return null;

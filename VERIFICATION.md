@@ -2,7 +2,9 @@
 
 ## Passed
 
-`node --test tests/physics.test.mjs`: **12 tests passed, 0 failed** on Node.js v22.18.0.
+`node --test tests/physics.test.mjs`: **14 tests passed, 0 failed** on Node.js v22.18.0.
+
+Follow-up correction: the original visual board normal used reversed horizontal signs, so the rendered plane rose in the physics acceleration direction. Corrected the display normal, preserving the intended input directions. Added regressions using Three.js quaternions to verify downhill height change for every cardinal/diagonal input and agreement between rendered board orientation and local gravity. An independent QA agent confirmed the original defect. The initial 12 physics-only tests did not cover this rendering/physics mismatch.
 
 Coverage: equal-height neutrality, backwards input example, deadzone and input separation, maximum radial tilt, stationary floor contact, acceleration/coasting/counter-tilt reversal, mud threshold and slowing, hole falls, rails and barrier collisions, uphill ramp support and downhill acceleration, goal settling, rate-limited travel facing, and timestep consistency.
 
